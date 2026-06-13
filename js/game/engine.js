@@ -16,7 +16,8 @@ window.GameEngine = (function () {
     pauseOffset: 0,
     lastFrameTime: 0,
     rafId: null,
-    callbacks: null
+    callbacks: null,
+    lastBeatTime: -1
   };
 
   function createNoteStates(notes) {
@@ -131,6 +132,7 @@ window.GameEngine = (function () {
     state.lastFrameTime = now;
     state.currentTime = state.pauseOffset + (now - state.startTime);
 
+    updateBeat(dt);
     processInput();
     updateMissed();
     updateHolds();
@@ -296,6 +298,20 @@ window.GameEngine = (function () {
             }
           }
         }
+      }
+    }
+  }
+
+  function updateBeat(dt) {
+    if (!state.level) return;
+    
+    const beatInterval = 60000 / state.level.bpm;
+    const currentBeat = Math.floor(state.currentTime / beatInterval);
+    
+    if (state.lastBeatTime < currentBeat) {
+      state.lastBeatTime = currentBeat;
+      if (state.callbacks.onBeat) {
+        state.callbacks.onBeat(currentBeat);
       }
     }
   }

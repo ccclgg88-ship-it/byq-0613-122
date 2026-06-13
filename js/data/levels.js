@@ -93,8 +93,8 @@ window.GameLevels = (function () {
     },
     judgeWindows: {
       perfect: 80,
-      great: 180,
-      miss: 250
+      great: 160,
+      miss: 300
     }
   };
 

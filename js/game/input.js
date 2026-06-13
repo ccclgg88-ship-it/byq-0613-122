@@ -16,10 +16,13 @@ window.InputSystem = (function () {
 
   let callbacks = {
     onKeyDown: null,
-    onKeyUp: null
+    onKeyUp: null,
+    onTrackPress: null,
+    onTrackRelease: null
   };
 
   let enabled = false;
+  let canvasEl = null;
 
   function handleKeyDown(e) {
     if (!enabled) return;
@@ -36,6 +39,9 @@ window.InputSystem = (function () {
 
       if (callbacks.onKeyDown) {
         callbacks.onKeyDown(track);
+      }
+      if (callbacks.onTrackPress) {
+        callbacks.onTrackPress(track);
       }
     }
   }
@@ -55,10 +61,161 @@ window.InputSystem = (function () {
       if (callbacks.onKeyUp) {
         callbacks.onKeyUp(track);
       }
+      if (callbacks.onTrackRelease) {
+        callbacks.onTrackRelease(track);
+      }
     }
   }
 
-  function init(onKeyDown, onKeyUp) {
+  function handleCanvasClick(e) {
+    if (!enabled || !canvasEl) return;
+
+    const rect = canvasEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const scaleX = canvasEl.width / rect.width;
+
+    const trackWidth = rect.width * 0.18;
+    const trackGap = rect.width * 0.04;
+    const totalWidth = TRACK_COUNT * trackWidth + (TRACK_COUNT - 1) * trackGap;
+    const startX = (rect.width - totalWidth) / 2;
+
+    for (let i = 0; i < TRACK_COUNT; i++) {
+      const trackLeft = startX + i * (trackWidth + trackGap);
+      const trackRight = trackLeft + trackWidth;
+
+      if (x >= trackLeft && x <= trackRight) {
+        if (!state.pressed[i]) {
+          state.pressed[i] = true;
+          state.justPressed[i] = true;
+          if (callbacks.onKeyDown) {
+            callbacks.onKeyDown(i);
+          }
+          if (callbacks.onTrackPress) {
+            callbacks.onTrackPress(i);
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  function handleCanvasMouseDown(e) {
+    if (!enabled || !canvasEl) return;
+
+    const rect = canvasEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+
+    const trackWidth = rect.width * 0.18;
+    const trackGap = rect.width * 0.04;
+    const totalWidth = TRACK_COUNT * trackWidth + (TRACK_COUNT - 1) * trackGap;
+    const startX = (rect.width - totalWidth) / 2;
+
+    for (let i = 0; i < TRACK_COUNT; i++) {
+      const trackLeft = startX + i * (trackWidth + trackGap);
+      const trackRight = trackLeft + trackWidth;
+
+      if (x >= trackLeft && x <= trackRight) {
+        if (!state.pressed[i]) {
+          state.pressed[i] = true;
+          state.justPressed[i] = true;
+          if (callbacks.onKeyDown) {
+            callbacks.onKeyDown(i);
+          }
+          if (callbacks.onTrackPress) {
+            callbacks.onTrackPress(i);
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  function handleCanvasMouseUp(e) {
+    if (!enabled || !canvasEl) return;
+
+    const rect = canvasEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+
+    const trackWidth = rect.width * 0.18;
+    const trackGap = rect.width * 0.04;
+    const totalWidth = TRACK_COUNT * trackWidth + (TRACK_COUNT - 1) * trackGap;
+    const startX = (rect.width - totalWidth) / 2;
+
+    for (let i = 0; i < TRACK_COUNT; i++) {
+      const trackLeft = startX + i * (trackWidth + trackGap);
+      const trackRight = trackLeft + trackWidth;
+
+      if (x >= trackLeft && x <= trackRight) {
+        if (state.pressed[i]) {
+          state.pressed[i] = false;
+          state.justReleased[i] = true;
+          if (callbacks.onKeyUp) {
+            callbacks.onKeyUp(i);
+          }
+          if (callbacks.onTrackRelease) {
+            callbacks.onTrackRelease(i);
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  function handleCanvasTouchStart(e) {
+    if (!enabled || !canvasEl) return;
+    e.preventDefault();
+
+    const rect = canvasEl.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+
+    const trackWidth = rect.width * 0.18;
+    const trackGap = rect.width * 0.04;
+    const totalWidth = TRACK_COUNT * trackWidth + (TRACK_COUNT - 1) * trackGap;
+    const startX = (rect.width - totalWidth) / 2;
+
+    for (let i = 0; i < TRACK_COUNT; i++) {
+      const trackLeft = startX + i * (trackWidth + trackGap);
+      const trackRight = trackLeft + trackWidth;
+
+      if (x >= trackLeft && x <= trackRight) {
+        if (!state.pressed[i]) {
+          state.pressed[i] = true;
+          state.justPressed[i] = true;
+          if (callbacks.onKeyDown) {
+            callbacks.onKeyDown(i);
+          }
+          if (callbacks.onTrackPress) {
+            callbacks.onTrackPress(i);
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  function handleCanvasTouchEnd(e) {
+    if (!enabled || !canvasEl) return;
+    e.preventDefault();
+
+    const rect = canvasEl.getBoundingClientRect();
+    
+    for (let i = 0; i < TRACK_COUNT; i++) {
+      if (state.pressed[i]) {
+        state.pressed[i] = false;
+        state.justReleased[i] = true;
+        if (callbacks.onKeyUp) {
+          callbacks.onKeyUp(i);
+        }
+        if (callbacks.onTrackRelease) {
+          callbacks.onTrackRelease(i);
+        }
+      }
+    }
+  }
+
+  function init(canvasElement, onKeyDown, onKeyUp) {
+    canvasEl = canvasElement;
     callbacks.onKeyDown = onKeyDown || null;
     callbacks.onKeyUp = onKeyUp || null;
     reset();
@@ -66,6 +223,15 @@ window.InputSystem = (function () {
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+
+    if (canvasEl) {
+      canvasEl.addEventListener('click', handleCanvasClick);
+      canvasEl.addEventListener('mousedown', handleCanvasMouseDown);
+      canvasEl.addEventListener('mouseup', handleCanvasMouseUp);
+      canvasEl.addEventListener('mouseleave', handleCanvasMouseUp);
+      canvasEl.addEventListener('touchstart', handleCanvasTouchStart);
+      canvasEl.addEventListener('touchend', handleCanvasTouchEnd);
+    }
   }
 
   function reset() {
@@ -103,6 +269,15 @@ window.InputSystem = (function () {
     enabled = false;
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('keyup', handleKeyUp);
+
+    if (canvasEl) {
+      canvasEl.removeEventListener('click', handleCanvasClick);
+      canvasEl.removeEventListener('mousedown', handleCanvasMouseDown);
+      canvasEl.removeEventListener('mouseup', handleCanvasMouseUp);
+      canvasEl.removeEventListener('mouseleave', handleCanvasMouseUp);
+      canvasEl.removeEventListener('touchstart', handleCanvasTouchStart);
+      canvasEl.removeEventListener('touchend', handleCanvasTouchEnd);
+    }
     reset();
   }
 
@@ -111,6 +286,13 @@ window.InputSystem = (function () {
     if (!val) {
       reset();
     }
+  }
+
+  function setCallbacks(cb) {
+    if (cb.onKeyDown) callbacks.onKeyDown = cb.onKeyDown;
+    if (cb.onKeyUp) callbacks.onKeyUp = cb.onKeyUp;
+    if (cb.onTrackPress) callbacks.onTrackPress = cb.onTrackPress;
+    if (cb.onTrackRelease) callbacks.onTrackRelease = cb.onTrackRelease;
   }
 
   return {
@@ -123,6 +305,7 @@ window.InputSystem = (function () {
     getPressedTracks: getPressedTracks,
     destroy: destroy,
     setEnabled: setEnabled,
+    setCallbacks: setCallbacks,
     KEY_MAP: KEY_MAP,
     TRACK_COUNT: TRACK_COUNT
   };

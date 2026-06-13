@@ -142,6 +142,8 @@
       showScreen(SCREENS.GAME);
       showPauseOverlay(false);
 
+      AudioSystem.resumeContext();
+
       requestAnimationFrame(() => {
         if (!canvasEl) {
           canvasEl = document.getElementById('game-canvas');
@@ -156,16 +158,33 @@
             showPauseOverlay(true);
           },
           onResume: () => {
+            AudioSystem.resumeContext();
             showPauseOverlay(false);
           },
           onFinish: (finalState) => {
             showPauseOverlay(false);
             Renderer.updateResult(finalState);
             showScreen(SCREENS.RESULT);
+            AudioSystem.playResultSound(finalState.rating);
+          },
+          onHit: (hitInfo) => {
+            AudioSystem.playHitSound(hitInfo.result, hitInfo.track);
+            if (hitInfo.scoreState && hitInfo.scoreState.combo === 10) {
+              AudioSystem.playComboSound(10);
+            } else if (hitInfo.scoreState && hitInfo.scoreState.combo === 30) {
+              AudioSystem.playComboSound(30);
+            } else if (hitInfo.scoreState && hitInfo.scoreState.combo === 50) {
+              AudioSystem.playComboSound(50);
+            } else if (hitInfo.scoreState && hitInfo.scoreState.combo === 100) {
+              AudioSystem.playComboSound(100);
+            }
+          },
+          onBeat: () => {
+            AudioSystem.playBeatSound();
           }
         };
 
-        InputSystem.init();
+        InputSystem.init(canvasEl);
         InputSystem.setEnabled(false);
 
         GameEngine.init(level, callbacks);
@@ -183,6 +202,8 @@
       document.addEventListener('DOMContentLoaded', init);
       return;
     }
+
+    AudioSystem.init();
 
     setupSpeedSelector();
     setupStartButton();
