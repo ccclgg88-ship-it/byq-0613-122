@@ -7,7 +7,13 @@
   };
 
   let currentSpeed = 'slow';
+  let currentLevelId = 'level1';
   let canvasEl = null;
+
+  let levelCards = [];
+  let levelNavPrev = null;
+  let levelNavNext = null;
+  let levelCounter = null;
 
   function showScreen(screenId) {
     const screens = document.querySelectorAll('.screen');
@@ -35,6 +41,195 @@
     showScreen(SCREENS.ERROR);
   }
 
+  function setupLevelSelector() {
+    levelCards = document.querySelectorAll('.level-card');
+    levelNavPrev = document.getElementById('prev-level');
+    levelNavNext = document.getElementById('next-level');
+    levelCounter = document.getElementById('level-counter');
+
+    updateLevelCards();
+
+    if (levelNavPrev) {
+      levelNavPrev.addEventListener('click', () => {
+        navigateLevel(-1);
+      });
+    }
+
+    if (levelNavNext) {
+      levelNavNext.addEventListener('click', () => {
+        navigateLevel(1);
+      });
+    }
+
+    levelCards.forEach((card, index) => {
+      card.addEventListener('click', () => {
+        const levelId = card.dataset.level;
+        if (ProgressManager.isUnlocked(levelId)) {
+          selectLevel(index);
+        }
+      });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        navigateLevel(-1);
+      } else if (e.key === 'ArrowRight') {
+        navigateLevel(1);
+      }
+    });
+  }
+
+  function updateLevelCards() {
+    const levelList = GameLevels.getLevelList();
+
+    levelCards.forEach((card, index) => {
+      const levelId = card.dataset.level;
+      const levelInfo = levelList[index];
+      const isUnlocked = ProgressManager.isUnlocked(levelId);
+      const record = ProgressManager.getRecord(levelId, currentSpeed);
+
+      const lockEl = card.querySelector('.level-lock');
+      const cardBg = card.querySelector('.card-bg');
+      const titleEl = card.querySelector('.level-title');
+      const subtitleEl = card.querySelector('.level-subtitle');
+      const artistEl = card.querySelector('.level-artist');
+      const bpmEl = card.querySelector('.meta-item');
+      const starsEl = card.querySelector('.difficulty-stars');
+      const descEl = card.querySelector('.level-desc');
+      const recordValues = card.querySelectorAll('.record-value');
+
+      if (isUnlocked) {
+        if (lockEl) lockEl.style.display = 'none';
+        card.style.pointerEvents = 'auto';
+      } else {
+        if (lockEl) lockEl.style.display = 'flex';
+        card.style.pointerEvents = 'none';
+      }
+
+      if (cardBg && levelInfo) {
+        cardBg.style.background = `linear-gradient(135deg, ${levelInfo.bgGradient[0]}, ${levelInfo.bgGradient[1]})`;
+      }
+
+      if (titleEl && levelInfo) {
+        titleEl.textContent = levelInfo.title;
+      }
+      if (subtitleEl && levelInfo) {
+        subtitleEl.textContent = levelInfo.subtitle;
+      }
+      if (artistEl && levelInfo) {
+        artistEl.textContent = levelInfo.artist;
+      }
+      if (bpmEl && levelInfo) {
+        bpmEl.innerHTML = `<span class="meta-icon">♪</span> ${levelInfo.bpm} BPM`;
+      }
+
+      if (starsEl && levelInfo) {
+        starsEl.innerHTML = '';
+        for (let i = 0; i < levelInfo.difficulty; i++) {
+          const star = document.createElement('span');
+          star.className = 'star';
+          star.textContent = '★';
+          starsEl.appendChild(star);
+        }
+      }
+
+      if (descEl && levelInfo) {
+        descEl.textContent = levelInfo.description;
+      }
+
+      if (recordValues.length >= 3) {
+        recordValues[0].textContent = record.score.toLocaleString();
+        recordValues[1].textContent = record.rating || '-';
+        recordValues[2].textContent = record.maxCombo;
+      }
+
+      if (levelId === currentLevelId) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+    });
+
+    updateLevelCounter();
+  }
+
+  function navigateLevel(direction) {
+    const levelList = GameLevels.getLevelList();
+    const currentIndex = levelList.findIndex(l => l.id === currentLevelId);
+    
+    let newIndex = currentIndex + direction;
+    
+    while (newIndex >= 0 && newIndex < levelList.length) {
+      const targetLevelId = levelList[newIndex].id;
+      if (ProgressManager.isUnlocked(targetLevelId)) {
+        selectLevel(newIndex);
+        break;
+      }
+      newIndex += direction;
+    }
+
+    updateNavigationButtons();
+  }
+
+  function selectLevel(index) {
+    const levelList = GameLevels.getLevelList();
+    if (index < 0 || index >= levelList.length) return;
+
+    const levelId = levelList[index].id;
+    if (!ProgressManager.isUnlocked(levelId)) return;
+
+    currentLevelId = levelId;
+
+    levelCards.forEach((card, i) => {
+      if (i === index) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+    });
+
+    const cardsContainer = document.getElementById('level-cards');
+    if (cardsContainer) {
+      cardsContainer.style.transform = `translateX(-${index * 100}%)`;
+    }
+
+    updateLevelCounter();
+    updateNavigationButtons();
+  }
+
+  function updateLevelCounter() {
+    const levelList = GameLevels.getLevelList();
+    const currentIndex = levelList.findIndex(l => l.id === currentLevelId);
+    const unlockedCount = ProgressManager.getTotalStats().unlockedCount;
+    
+    if (levelCounter) {
+      levelCounter.textContent = `${currentIndex + 1}/${levelList.length} (${unlockedCount}已解锁)`;
+    }
+  }
+
+  function updateNavigationButtons() {
+    const levelList = GameLevels.getLevelList();
+    const currentIndex = levelList.findIndex(l => l.id === currentLevelId);
+
+    if (levelNavPrev) {
+      levelNavPrev.disabled = currentIndex === 0;
+      levelNavPrev.style.opacity = currentIndex === 0 ? '0.3' : '1';
+    }
+
+    let canGoNext = false;
+    for (let i = currentIndex + 1; i < levelList.length; i++) {
+      if (ProgressManager.isUnlocked(levelList[i].id)) {
+        canGoNext = true;
+        break;
+      }
+    }
+
+    if (levelNavNext) {
+      levelNavNext.disabled = !canGoNext;
+      levelNavNext.style.opacity = canGoNext ? '1' : '0.3';
+    }
+  }
+
   function setupSpeedSelector() {
     const buttons = document.querySelectorAll('.speed-btn');
     buttons.forEach(btn => {
@@ -42,6 +237,7 @@
         buttons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentSpeed = btn.dataset.speed || 'slow';
+        updateLevelCards();
       });
     });
   }
@@ -93,6 +289,7 @@
     if (!btn) return;
     btn.addEventListener('click', () => {
       showScreen(SCREENS.MENU);
+      updateLevelCards();
     });
   }
 
@@ -124,9 +321,63 @@
     });
   }
 
+  function updateGameHUD(levelId, speed) {
+    const levelInfo = GameLevels.getLevelInfo(levelId);
+    if (!levelInfo) return;
+
+    const titleEl = document.getElementById('level-title');
+    const artistEl = document.getElementById('level-artist');
+    const speedEl = document.getElementById('speed-indicator');
+
+    if (titleEl) titleEl.textContent = levelInfo.title;
+    if (artistEl) artistEl.textContent = levelInfo.artist;
+    if (speedEl) speedEl.textContent = speed === 'slow' ? '慢' : '快';
+  }
+
+  function updateResultScreen(finalState, levelId, speed, newRecord, unlockedLevel) {
+    const levelInfo = GameLevels.getLevelInfo(levelId);
+    if (!levelInfo) return;
+
+    const titleEl = document.getElementById('result-level-title');
+    const artistEl = document.getElementById('result-level-artist');
+    const speedEl = document.getElementById('result-speed');
+    const bestEl = document.getElementById('result-best');
+    const newRecordEl = document.getElementById('result-new-record');
+    const unlockEl = document.getElementById('result-unlock');
+
+    if (titleEl) titleEl.textContent = levelInfo.title;
+    if (artistEl) artistEl.textContent = levelInfo.artist;
+    if (speedEl) speedEl.textContent = speed === 'slow' ? '慢速' : '快速';
+
+    const record = ProgressManager.getRecord(levelId, speed);
+    if (bestEl) {
+      if (record.rating) {
+        bestEl.textContent = `${record.rating} / ${record.score.toLocaleString()}`;
+      } else {
+        bestEl.textContent = '-';
+      }
+    }
+
+    if (newRecordEl) {
+      if (newRecord.newRecord || newRecord.newCombo) {
+        newRecordEl.classList.add('show');
+      } else {
+        newRecordEl.classList.remove('show');
+      }
+    }
+
+    if (unlockEl) {
+      if (unlockedLevel) {
+        unlockEl.classList.add('show');
+      } else {
+        unlockEl.classList.remove('show');
+      }
+    }
+  }
+
   function startGame() {
     try {
-      const level = GameLevels.getLevel(currentSpeed);
+      const level = GameLevels.getLevel(currentLevelId, currentSpeed);
 
       const validation = LevelValidator.validate(level);
       if (!validation.valid) {
@@ -150,6 +401,8 @@
         }
         Renderer.init(canvasEl);
 
+        updateGameHUD(currentLevelId, currentSpeed);
+
         const callbacks = {
           onStart: () => {
             InputSystem.setEnabled(true);
@@ -163,7 +416,23 @@
           },
           onFinish: (finalState) => {
             showPauseOverlay(false);
+            
+            const recordResult = ProgressManager.updateRecord(
+              currentLevelId,
+              currentSpeed,
+              finalState.score,
+              finalState.rating,
+              finalState.maxCombo
+            );
+
+            const unlockedLevel = ProgressManager.checkUnlockCondition(
+              currentLevelId,
+              currentSpeed,
+              finalState.rating
+            );
+
             Renderer.updateResult(finalState);
+            updateResultScreen(finalState, currentLevelId, currentSpeed, recordResult, unlockedLevel);
             showScreen(SCREENS.RESULT);
             AudioSystem.playResultSound(finalState.rating);
           },
@@ -205,6 +474,7 @@
 
     AudioSystem.init();
 
+    setupLevelSelector();
     setupSpeedSelector();
     setupStartButton();
     setupPauseButton();
