@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灵感捕捉 - 复古节奏机</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+<div id="menu-screen" class="screen active">
+<div class="menu-bg"></div>
+<div class="menu-content">
+<h1 class="game-title">
+<span class="title-glow">灵感捕捉</span>
+<span class="title-sub">INSPIRATION CATCHER</span>
+</h1>
+<div class="speed-selector">
+<span class="selector-label">节奏速度</span>
+<div class="speed-options">
+<button class="speed-btn active" data-speed="slow">
+<span class="speed-name">慢速</span>
+<span class="speed-desc">RELAXED</span>
+</button>
+<button class="speed-btn" data-speed="fast">
+<span class="speed-name">快速</span>
+<span class="speed-desc">INTENSE</span>
+</button>
+</div>
+</div>
+<button id="start-btn" class="neon-btn start-btn">
+<span>开始游戏</span>
+<div class="btn-glow"></div>
+</button>
+<div class="key-hints">
+<span class="hint-key">D</span>
+<span class="hint-key">F</span>
+<span class="hint-key">J</span>
+<span class="hint-key">K</span>
+</div>
+</div>
+</div>
+
+<div id="game-screen" class="screen">
+<canvas id="game-canvas"></canvas>
+<div id="game-hud">
+<div class="hud-left">
+<div class="score-display">
+<span class="label">灵感值</span>
+<span id="score-value" class="value">0</span>
+</div>
+<div class="multiplier-display">
+<span id="multiplier-value" class="value">×1</span>
+</div>
+</div>
+<div class="hud-right">
+<div class="combo-display">
+<span id="combo-value" class="value">0</span>
+<span class="label">COMBO</span>
+</div>
+</div>
+</div>
+<button id="pause-btn" class="pause-btn">❚❚</button>
+<div id="judge-feedback"></div>
+</div>
+
+<div id="pause-overlay" class="overlay">
+<div class="pause-panel">
+<h2>暂停</h2>
+<button id="resume-btn" class="neon-btn">
+<span>继续</span>
+<div class="btn-glow"></div>
+</button>
+<button id="quit-btn" class="neon-btn secondary">
+<span>退出</span>
+<div class="btn-glow"></div>
+</button>
+</div>
+</div>
+
+<div id="result-screen" class="screen">
+<div class="result-content">
+<div class="result-rating">
+<span id="rating-letter" class="rating-letter">S</span>
+</div>
+<div class="result-stats">
+<div class="stat-row">
+<span class="stat-label">总得分</span>
+<span id="result-score" class="stat-value">0</span>
+</div>
+<div class="stat-row">
+<span class="stat-label">命中率</span>
+<span id="result-accuracy" class="stat-value">0%</span>
+</div>
+<div class="stat-row perfect">
+<span class="stat-label">Perfect</span>
+<span id="result-perfect" class="stat-value">0</span>
+</div>
+<div class="stat-row great">
+<span class="stat-label">Great</span>
+<span id="result-great" class="stat-value">0</span>
+</div>
+<div class="stat-row miss">
+<span class="stat-label">Miss</span>
+<span id="result-miss" class="stat-value">0</span>
+</div>
+<div class="stat-row">
+<span class="stat-label">最高连击</span>
+<span id="result-maxcombo" class="stat-value">0</span>
+</div>
+</div>
+<div class="result-actions">
+<button id="retry-btn" class="neon-btn">
+<span>再来一次</span>
+<div class="btn-glow"></div>
+</button>
+<button id="menu-btn" class="neon-btn secondary">
+<span>返回主菜单</span>
+<div class="btn-glow"></div>
+</button>
+</div>
+</div>
+</div>
+
+<div id="error-screen" class="screen">
+<div class="error-content">
+<div class="error-icon">⚠</div>
+<h2>关卡数据异常</h2>
+<p id="error-message">请检查关卡数据是否完整</p>
+<button id="error-back-btn" class="neon-btn">
+<span>返回主菜单</span>
+<div class="btn-glow"></div>
+</button>
+</div>
+</div>
+</div>
+
+<script src="js/data/levels.js"></script>
+<script src="js/utils/validator.js"></script>
+<script src="js/game/judge.js"></script>
+<script src="js/game/score.js"></script>
+<script src="js/game/input.js"></script>
+<script src="js/game/renderer.js"></script>
+<script src="js/game/engine.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
