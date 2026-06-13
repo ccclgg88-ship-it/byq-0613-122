@@ -56,24 +56,29 @@ window.JudgeSystem = (function () {
     return RESULT.MISS;
   }
 
-  function findClosestNote(notes, track, currentTime, hitSet) {
+  function findClosestNote(notes, track, currentTime, noteStates) {
     let closest = null;
     let closestDiff = Infinity;
 
     for (const note of notes) {
       if (note.track !== track) continue;
-      if (hitSet.has(note.id)) continue;
-      if (note.judged && note.judged.start) continue;
+
+      const ns = noteStates ? noteStates[note.id] : null;
+      if (ns) {
+        if (ns.hit || ns.missed) continue;
+        if (note.type === 'hold' && ns.startJudged) continue;
+      }
 
       const diff = currentTime - note.time;
-
-      if (diff < -config.miss) break;
-
       const absDiff = Math.abs(diff);
+
       if (absDiff <= config.miss && absDiff < closestDiff) {
         closest = note;
         closestDiff = absDiff;
       }
+
+      if (diff > config.miss * 3) continue;
+      if (diff < -config.miss * 8) continue;
     }
 
     return closest;

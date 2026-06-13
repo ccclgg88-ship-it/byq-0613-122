@@ -92,9 +92,9 @@ window.GameLevels = (function () {
       }
     },
     judgeWindows: {
-      perfect: 50,
-      great: 120,
-      miss: 180
+      perfect: 80,
+      great: 180,
+      miss: 250
     }
   };
 

@@ -15,11 +15,15 @@ window.Renderer = (function () {
     trackWidth: 0,
     trackGap: 0,
     noteSize: 0,
-    noteRadius: 0
+    noteRadius: 0,
+    bpm: 120,
+    beatMs: 500
   };
 
   let particles = [];
   let holdEffects = [];
+  let beatPulse = 0;
+  let lastBeatTime = -1;
 
   function init(canvasEl) {
     canvas = canvasEl;
@@ -49,6 +53,82 @@ window.Renderer = (function () {
 
   function setNoteSpeed(speed) {
     config.noteSpeed = speed;
+  }
+
+  function setBpm(bpm) {
+    config.bpm = bpm || 120;
+    config.beatMs = 60000 / config.bpm;
+  }
+
+  function getBeatProgress(currentTime) {
+    if (config.beatMs <= 0) return 0;
+    const beatIndex = Math.floor(currentTime / config.beatMs);
+    const beatStart = beatIndex * config.beatMs;
+    return (currentTime - beatStart) / config.beatMs;
+  }
+
+  function getCurrentBeatIndex(currentTime) {
+    return Math.floor(currentTime / config.beatMs);
+  }
+
+  function updateBeatPulse(currentTime, dt) {
+    const beatIdx = getCurrentBeatIndex(currentTime);
+    if (beatIdx !== lastBeatTime) {
+      lastBeatTime = beatIdx;
+      beatPulse = 1;
+    }
+    beatPulse = Math.max(0, beatPulse - dt / 300);
+  }
+
+  function drawBeatScale(currentTime) {
+    const travelTime = (config.judgeLineY / config.noteSpeed) * 1000;
+    const firstBeatOnScreen = Math.floor((currentTime - travelTime) / config.beatMs) - 1;
+    const lastBeatOnScreen = Math.floor(currentTime / config.beatMs) + 2;
+
+    const totalWidth = TRACK_COUNT * config.trackWidth + (TRACK_COUNT - 1) * config.trackGap;
+    const startX = (width - totalWidth) / 2;
+    const endX = startX + totalWidth;
+
+    ctx.lineWidth = 1;
+
+    for (let i = firstBeatOnScreen; i <= lastBeatOnScreen; i++) {
+      if (i < 0) continue;
+      const beatTime = i * config.beatMs;
+      const y = getNoteY({ time: beatTime }, currentTime);
+      const isDownbeat = i % 4 === 0;
+
+      if (isDownbeat) {
+        ctx.strokeStyle = 'rgba(255, 245, 0, 0.18)';
+        ctx.lineWidth = 2;
+      } else {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 1;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(startX, y);
+      ctx.lineTo(endX, y);
+      ctx.stroke();
+
+      if (isDownbeat) {
+        const label = String(Math.floor(i / 4) + 1);
+        ctx.font = 'bold 12px Orbitron, sans-serif';
+        ctx.fillStyle = 'rgba(255, 245, 0, 0.35)';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, startX + 6, y);
+      }
+    }
+
+    if (beatPulse > 0) {
+      const pulseColor = lastBeatTime % 4 === 0 ? 'rgba(255, 245, 0, ' : 'rgba(0, 240, 255, ';
+      ctx.strokeStyle = pulseColor + (beatPulse * 0.5) + ')';
+      ctx.lineWidth = beatPulse * 4;
+      ctx.beginPath();
+      ctx.moveTo(startX, config.judgeLineY);
+      ctx.lineTo(endX, config.judgeLineY);
+      ctx.stroke();
+    }
   }
 
   function getConfig() {
@@ -409,6 +489,7 @@ window.Renderer = (function () {
   function render(notes, currentTime, noteStates, scoreState) {
     clear();
     drawBackground();
+    drawBeatScale(currentTime);
     drawHoldEffects();
     drawTracks(InputSystem ? InputSystem.getPressedTracks() : []);
     drawNotes(notes, currentTime, noteStates);
@@ -417,15 +498,20 @@ window.Renderer = (function () {
     updateHUD(scoreState);
   }
 
-  function update(dt) {
+  function update(dt, currentTime) {
     updateParticles(dt);
     updateJudgeFlash(dt);
+    if (currentTime !== undefined) {
+      updateBeatPulse(currentTime, dt);
+    }
   }
 
   function reset() {
     particles = [];
     holdEffects = [];
     judgeLineFlash = 0;
+    beatPulse = 0;
+    lastBeatTime = -1;
     const container = document.getElementById('judge-feedback');
     if (container) container.innerHTML = '';
   }
@@ -434,6 +520,7 @@ window.Renderer = (function () {
     init: init,
     resize: resize,
     setNoteSpeed: setNoteSpeed,
+    setBpm: setBpm,
     getConfig: getConfig,
     getTrackX: getTrackX,
     getNoteY: getNoteY,

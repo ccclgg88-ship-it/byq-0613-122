@@ -50,6 +50,7 @@ window.GameEngine = (function () {
     JudgeSystem.init(levelData.judgeWindows);
     ScoreSystem.init(state.notes.length);
     Renderer.setNoteSpeed(levelData.noteSpeed);
+    Renderer.setBpm(levelData.bpm);
     Renderer.reset();
     InputSystem.reset();
 
@@ -134,7 +135,7 @@ window.GameEngine = (function () {
     updateMissed();
     updateHolds();
 
-    Renderer.update(dt);
+    Renderer.update(dt, state.currentTime);
     Renderer.render(
       state.notes,
       state.currentTime,
@@ -168,7 +169,7 @@ window.GameEngine = (function () {
       state.notes,
       track,
       state.currentTime,
-      new Set()
+      state.noteStates
     );
 
     if (!closest) return;
